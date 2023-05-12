@@ -1,9 +1,10 @@
 #!/bin/bash
 # usage of this script
-# for backup use "sh xfce-backup.sh backup"
-# for restore from backup use "sh xfce-backup-restore.sh restore"
+# for backup use "./xfce-backup.sh backup"
+# for restore from backup use "./xfce-backup.sh restore"
 # while using restore, xfce4-backup.tar.gz have to be in the same directory with this script
 MODE=$1 # mode
+VERSION="0.0.1"
 
 # main backup function
 function backupmain() {
@@ -20,23 +21,22 @@ function backupmain() {
     echo "$THEME" >> ./Theme/currenttheme
     echo "$ICON" >> ./Icons/currenticon
     echo "$CURSOR" >> ./Cursor/currentcursor && echo "$CURSORSIZE" >> ./Cursor/currentsize
-    tar -czf ./xfce4-backup.tar.gz xfce4 Theme Icons Cursor .face 
+    echo "$VERSION" >> version
+    tar -czf ./xfce4-backup.tar.gz xfce4 Theme Icons Cursor .face version
     cp ./xfce4-backup.tar.gz "./out/"
-    rm -r xfce4 Theme Icons Cursor .face xfce4-backup.tar.gz
+    rm -r xfce4 Theme Icons Cursor .face xfce4-backup.tar.gz version
 }
 
 function backup() {
-  if [[ $(id -u) != 0 ]]; then
     if [ -f "./out/xfce4-backup.tar.gz" ]; then
         backupmain
         echo "backup file successfully overwritten!"
+        echo "Please check files inside archive to ensure backup files are correct"
     else
         backupmain
         echo "backup file successfully created!"
+        echo "Please check files inside the archive to ensure backup files are correct"
     fi
-  else
-    echo "don't run this as root"
-  fi
 }
 
 function restore() {
@@ -58,29 +58,30 @@ function restore() {
     echo "xfce config and theme restored"
 }
 
-# check mode
+# check if the file ran as root
 if [[ $(id -u) != 0 ]]; then
-  if [ "$MODE" = backup ]; then
-    if [ -d "/$HOME/.config/xfce4/" ]; then
-        # create an output file if it isn't exists
-        if [ -d "./out/" ]; then
-            :
+    # Check for the mode
+    if [ "$MODE" = backup ]; then
+        if [ -d "/$HOME/.config/xfce4/" ]; then
+            # create an output file if it isn't exists
+            if [ -d "./out/" ]; then
+                :
+            else
+                mkdir out
+            fi
+            backup
         else
-            mkdir out
+            echo "couldn't find the config"
         fi
-        backup
+    elif [ "$MODE" = restore ]; then
+        if [ -f "./xfce4-backup.tar.gz" ]; then
+            restore
+        else
+            echo "couldn't find the config"
+        fi
     else
-        echo "couldn't find the config"
-    fi
-elif [ "$MODE" = restore ]; then
-    if [ -f "./xfce4-backup.tar.gz" ]; then
-        restore
-    else
-        echo "couldn't find the config"
+        echo "error '$MODE' is not an argument use 'backup' or 'restore'"
     fi
 else
-    echo "error '$MODE' is not an argument use 'backup' or 'restore'"
-fi
-  else
-  echo "don't run this as root"
+    echo "don't run this as root"
 fi
